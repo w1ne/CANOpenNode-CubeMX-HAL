@@ -284,12 +284,13 @@ void CO_CANverifyErrors(CO_CANmodule_t *CANmodule){
     uint16_t rxErrors, txErrors, overflow;
     CO_EM_t* em = (CO_EM_t*)CANmodule->em;
     uint32_t err;
-
+    uint32_t HalCanErrorCode = CANmodule->CANbaseAddress->ErrorCode;
     /* get error counters from module. Id possible, function may use different way to
      * determine errors. */
-    rxErrors = CANmodule->txSize;
-    txErrors = CANmodule->txSize;
-    overflow = CANmodule->txSize;
+    //TODO add proper error detection 
+    //rxErrors = CANmodule->txSize;
+    //txErrors = CANmodule->txSize;
+    //overflow = CANmodule->txSize;
 
     err = ((uint32_t)txErrors << 16) | ((uint32_t)rxErrors << 8) | overflow;
 
