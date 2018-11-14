@@ -7,7 +7,7 @@
  * @ingroup     CO_driver
  * @author      Janez Paternoster
  * @author      Andrii Shylenko
- * @copyright   2018 Andrii Shylenko
+ * @copyright   2004 - 2015 Janez Paternoster
  *
  * This file is part of CANopenNode, an opensource CANopen Stack.
  * Project home page is <https://github.com/CANopenNode/CANopenNode>.
