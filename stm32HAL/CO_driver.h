@@ -1,7 +1,7 @@
 /**
- * CAN module object for generic microcontroller.
+ * \brief CAN module object for generic STM microcontroller.
  *
- * This file is a template for other microcontrollers.
+ * \details CanOpenNode driver implementation based on STMCubeMX HAL.
  *
  * @file        CO_driver.h
  * @ingroup     CO_driver
@@ -58,6 +58,9 @@ extern "C" {
 #include <stddef.h>         /* for 'NULL' */
 #include <stdint.h>         /* for 'int8_t' to 'uint64_t' */
 #include <stdbool.h>        /* for 'true', 'false' */
+
+#include "stm32l4xx_hal.h"
+#include "can.h"
 
 
 /**
@@ -171,14 +174,14 @@ extern "C" {
  * CO_SYNC_initCallback() function.
  * @{
  */
-    #define CO_LOCK_CAN_SEND()  /**< Lock critical section in CO_CANsend() */
-    #define CO_UNLOCK_CAN_SEND()/**< Unlock critical section in CO_CANsend() */
+    #define CO_LOCK_CAN_SEND()  	__set_PRIMASK(1); /**< Lock critical section in CO_CANsend() */
+    #define CO_UNLOCK_CAN_SEND()    __set_PRIMASK(0); /**< Unlock critical section in CO_CANsend() */
 
-    #define CO_LOCK_EMCY()      /**< Lock critical section in CO_errorReport() or CO_errorReset() */
-    #define CO_UNLOCK_EMCY()    /**< Unlock critical section in CO_errorReport() or CO_errorReset() */
+    #define CO_LOCK_EMCY()          __set_PRIMASK(1); /**< Lock critical section in CO_errorReport() or CO_errorReset() */
+    #define CO_UNLOCK_EMCY()        __set_PRIMASK(0); /**< Unlock critical section in CO_errorReport() or CO_errorReset() */
 
-    #define CO_LOCK_OD()        /**< Lock critical section when accessing Object Dictionary */
-    #define CO_UNLOCK_OD()      /**< Unock critical section when accessing Object Dictionary */
+    #define CO_LOCK_OD()            __set_PRIMASK(1); /**< Lock critical section when accessing Object Dictionary */
+    #define CO_UNLOCK_OD()          __set_PRIMASK(0); /**< Unlock critical section when accessing Object Dictionary */
 /** @} */
 
 
@@ -197,13 +200,14 @@ extern "C" {
     typedef unsigned char           domain_t;   /**< domain_t */
 /** @} */
 
+#define  HAL_CAN_HANDLER hcan1
 
 /**
  * Return values of some CANopen functions. If function was executed
  * successfully it returns 0 otherwise it returns <0.
  */
 typedef enum{
-    CO_ERROR_NO                 = 0,    /**< Operation completed successfully */
+    CO_ERROR_NO                 =  0,   /**< Operation completed successfully */
     CO_ERROR_ILLEGAL_ARGUMENT   = -1,   /**< Error in function arguments */
     CO_ERROR_OUT_OF_MEMORY      = -2,   /**< Memory allocation failed */
     CO_ERROR_TIMEOUT            = -3,   /**< Function timeout */
@@ -214,10 +218,11 @@ typedef enum{
     CO_ERROR_RX_PDO_LENGTH      = -8,   /**< Wrong receive PDO length */
     CO_ERROR_TX_OVERFLOW        = -9,   /**< Previous message is still waiting, buffer full */
     CO_ERROR_TX_PDO_WINDOW      = -10,  /**< Synchronous TPDO is outside window */
-    CO_ERROR_TX_UNCONFIGURED    = -11,  /**< Transmit buffer was not confugured properly */
-    CO_ERROR_PARAMETERS         = -12,  /**< Error in function function parameters */
+    CO_ERROR_TX_UNCONFIGURED    = -11,  /**< Transmit buffer was not configured properly */
+    CO_ERROR_PARAMETERS         = -12,  /**< Error in function parameters */
     CO_ERROR_DATA_CORRUPT       = -13,  /**< Stored data are corrupt */
-    CO_ERROR_CRC                = -14   /**< CRC does not match */
+    CO_ERROR_CRC                = -14,   /**< CRC does not match */
+	CO_ERROR_HAL		     	= -15	/**< HAL error */
 }CO_ReturnError_t;
 
 
@@ -227,8 +232,9 @@ typedef enum{
  */
 typedef struct{
     /** CAN identifier. It must be read through CO_CANrxMsg_readIdent() function. */
-    uint32_t            ident;
-    uint8_t             DLC ;           /**< Length of CAN message */
+	CAN_RxHeaderTypeDef RxHeader;
+    uint32_t            ident;          /* Standard Identifier */
+    uint8_t             DLC;            /* Data length code (bits 0...3) */
     uint8_t             data[8];        /**< 8 data bytes */
 }CO_CANrxMsg_t;
 
@@ -261,28 +267,29 @@ typedef struct{
  * CAN module object. It may be different in different microcontrollers.
  */
 typedef struct{
-    int32_t             CANbaseAddress; /**< From CO_CANmodule_init() */
-    CO_CANrx_t         *rxArray;        /**< From CO_CANmodule_init() */
-    uint16_t            rxSize;         /**< From CO_CANmodule_init() */
-    CO_CANtx_t         *txArray;        /**< From CO_CANmodule_init() */
-    uint16_t            txSize;         /**< From CO_CANmodule_init() */
-    volatile bool_t     CANnormal;      /**< CAN module is in normal mode */
+//	CAN_HandleTypeDef   *CanHandle;		 /*CubeMX CAN handle */
+	CAN_HandleTypeDef   *CANbaseAddress; /**< From CO_CANmodule_init() */
+    CO_CANrx_t          *rxArray;        /**< From CO_CANmodule_init() */
+    uint16_t             rxSize;         /**< From CO_CANmodule_init() */
+    CO_CANtx_t          *txArray;        /**< From CO_CANmodule_init() */
+    uint16_t             txSize;         /**< From CO_CANmodule_init() */
+    volatile bool_t      CANnormal;      /**< CAN module is in normal mode */
     /** Value different than zero indicates, that CAN module hardware filters
       * are used for CAN reception. If there is not enough hardware filters,
       * they won't be used. In this case will be *all* received CAN messages
       * processed by software. */
-    volatile bool_t     useCANrxFilters;
+    volatile bool_t      useCANrxFilters;
     /** If flag is true, then message in transmitt buffer is synchronous PDO
       * message, which will be aborted, if CO_clearPendingSyncPDOs() function
       * will be called by application. This may be necessary if Synchronous
       * window time was expired. */
-    volatile bool_t     bufferInhibitFlag;
+    volatile bool_t      bufferInhibitFlag;
     /** Equal to 1, when the first transmitted message (bootup message) is in CAN TX buffers */
-    volatile bool_t     firstCANtxMessage;
+    volatile bool_t      firstCANtxMessage;
     /** Number of messages in transmit buffer, which are waiting to be copied to the CAN module */
-    volatile uint16_t   CANtxCount;
-    uint32_t            errOld;         /**< Previous state of CAN errors */
-    void               *em;             /**< Emergency object */
+    volatile uint16_t    CANtxCount;
+    uint32_t             errOld;         /**< Previous state of CAN errors */
+    void                *em;             /**< Emergency object */
 }CO_CANmodule_t;
 
 
@@ -296,7 +303,7 @@ typedef struct{
 
 
 /**
- * Request CAN configuration (stopped) mode and *wait* untill it is set.
+ * Request CAN configuration (stopped) mode and *wait* until it is set.
  *
  * @param CANbaseAddress CAN module base address.
  */
@@ -304,7 +311,7 @@ void CO_CANsetConfigurationMode(int32_t CANbaseAddress);
 
 
 /**
- * Request CAN normal (opearational) mode and *wait* untill it is set.
+ * Request CAN normal (operational) mode and *wait* until it is set.
  *
  * @param CANmodule This object.
  */
@@ -318,7 +325,7 @@ void CO_CANsetNormalMode(CO_CANmodule_t *CANmodule);
  * be in Configuration Mode before.
  *
  * @param CANmodule This object will be initialized.
- * @param CANbaseAddress CAN module base address.
+ * @param CANbaseAddress CAN module base address. In CUBEMX HAL context it is address of the @CAN_HandleTypeDef object.
  * @param rxArray Array for handling received CAN messages
  * @param rxSize Size of the above array. Must be equal to number of receiving CAN objects.
  * @param txArray Array for handling transmitting CAN messages
@@ -330,7 +337,7 @@ void CO_CANsetNormalMode(CO_CANmodule_t *CANmodule);
  */
 CO_ReturnError_t CO_CANmodule_init(
         CO_CANmodule_t         *CANmodule,
-        int32_t                 CANbaseAddress,
+		CAN_HandleTypeDef      *HALCanObject,
         CO_CANrx_t              rxArray[],
         uint16_t                rxSize,
         CO_CANtx_t              txArray[],
@@ -352,7 +359,7 @@ void CO_CANmodule_disable(CO_CANmodule_t *CANmodule);
  * @param rxMsg Pointer to received message
  * @return 11-bit CAN standard identifier.
  */
-uint16_t CO_CANrxMsg_readIdent(const CO_CANrxMsg_t *rxMsg);
+//uint16_t CO_CANrxMsg_readIdent(const CO_CANrxMsg_t *rxMsg);
 
 
 /**
@@ -454,15 +461,26 @@ void CO_CANclearPendingSyncPDOs(CO_CANmodule_t *CANmodule);
  */
 void CO_CANverifyErrors(CO_CANmodule_t *CANmodule);
 
-
 /**
- * Receives and transmits CAN messages.
+ * Receives CAN messages.
  *
  * Function must be called directly from high priority CAN interrupt.
+ * e.g. CAN1_TX0_IRQHandler for CubeMx HAL libs.
  *
  * @param CANmodule This object.
  */
-void CO_CANinterrupt(CO_CANmodule_t *CANmodule);
+void CO_CANinterrupt_Rx(CO_CANmodule_t *CANmodule);
+
+/**
+ * Transmits CAN messages.
+ *
+ * Function must be called directly from high priority CAN interrupt.
+ * e.g. CAN1_RX0_IRQHandler for CubeMx HAL libs.
+ *
+ * @param CANmodule This object.
+ */
+
+void CO_CANinterrupt_Tx(CO_CANmodule_t *CANmodule);
 
 #ifdef __cplusplus
 }
