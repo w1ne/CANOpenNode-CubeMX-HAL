@@ -595,7 +595,7 @@ void CO_CANinterrupt_Tx(CO_CANmodule_t *CANmodule)
         		/* Copy message to CAN buffer */
         		CANmodule->bufferInhibitFlag = buffer->syncFlag;
         		CAN_TxHeaderTypeDef TxHeader;
-			    prepareTxHeader(&TxHeader, &buffer);
+			    prepareTxHeader(&TxHeader, buffer);
 
         		uint32_t TxMailboxNum;
 
