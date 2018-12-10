@@ -54,6 +54,11 @@
 #include "CO_Emergency.h"
 
 /*-----------------------------------------------------------------------------
+ * LOCAL (static) DEFINITIONS
+ *----------------------------------------------------------------------------*/
+/*\brief pointer to CO_CanModule used in CubeMX CAN Rx interrupt routine*/
+static CO_CANmodule_t* RxFifo_Callback_CanModule_p = NULL;
+/*-----------------------------------------------------------------------------
  * LOCAL FUNCTION PROTOTYPES
  *----------------------------------------------------------------------------*/
 static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
@@ -66,8 +71,9 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
  * \author
  * \date 	10.11.2018
  *
- * \brief
- *	Interrupts callback functions initialization.
+ * \brief prepares CAN Tx header based on the ID, RTR and data count.
+ * \param [in]	TxHeader pointer to @CAN_TxHeaderTypeDef object
+ * \param [in]	buffer ponyer to CO_CANtx_t with CANopen configuration data
  *
  * \ingroup CO_driver
  ******************************************************************************/
@@ -83,16 +89,68 @@ void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer)
  * GLOBAL FUNCTIONS - see descriptions in header file
  *----------------------------------------------------------------------------*/
 
+//TODO move callbacks to the CO_driver.c and implement callback init routine
+
+/* \brief 	Cube MX callbacks for Fifo0 and Fifo1
+ * \details It is assumed that only one CANmodule is (CO->CANmodule[0]) is used.
+ */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	if(RxFifo_Callback_CanModule_p != NULL)
+	{
+		CO_CANinterrupt_Rx(RxFifo_Callback_CanModule_p);
+	}
+	else
+	{
+		;/*TODO add assert, according to Cube MX driver we should not be here
+		  *but for some reason interrupts get activated as soon as HAL_NVIC_EnableIRQ is called.
+		  *According to Cube CAN docs HAL_CAN_ActivateNotification should be executed to
+		  *activate callbacks.
+		  */
+	}
+}
+
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	if(RxFifo_Callback_CanModule_p != NULL)
+	{
+		CO_CANinterrupt_Rx(RxFifo_Callback_CanModule_p);
+	}
+	else
+	{
+		;//TODO add assert here
+	}
+}
+
 void CO_CANsetConfigurationMode(int32_t CANbaseAddress){
     /* Put CAN module in configuration mode */
 	/* HAL is responsible for that */
 }
 
-
 /******************************************************************************/
-void CO_CANsetNormalMode(CO_CANmodule_t *CANmodule){
+CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule){
     /* Put CAN module in normal mode */
+
+	CO_ReturnError_t Error = CO_ERROR_NO;
+	if(HAL_CAN_Start(CANmodule->CANbaseAddress) != HAL_OK)
+	{
+	    /* Start Error */
+		Error = CO_ERROR_HAL;
+	}
+
+    /* Enable CAN interrupts */
+	if(HAL_CAN_ActivateNotification( CANmodule->CANbaseAddress,
+									 CAN_IT_RX_FIFO0_MSG_PENDING |
+									 CAN_IT_RX_FIFO1_MSG_PENDING |
+									 CAN_IT_TX_MAILBOX_EMPTY)
+									 != HAL_OK)
+	{
+		/* Notification Error */
+		Error = CO_ERROR_HAL;
+	}
+
     CANmodule->CANnormal = true;
+    return Error;
 }
 
 /******************************************************************************/
@@ -112,6 +170,12 @@ CO_ReturnError_t CO_CANmodule_init(
     {
         return CO_ERROR_ILLEGAL_ARGUMENT;
     }
+    else
+    {
+    	;//do nothing
+    }
+
+    RxFifo_Callback_CanModule_p = CANmodule;
 
     /* Configure object variables */
     CANmodule->CANbaseAddress = (CAN_HandleTypeDef*)HALCanObject;
@@ -211,20 +275,6 @@ CO_ReturnError_t CO_CANmodule_init(
     	return CO_ERROR_HAL;
     }
 
-
-	if(HAL_CAN_Start(CANmodule->CANbaseAddress) != HAL_OK)
-	{
-	    /* Start Error */
-		return CO_ERROR_HAL;
-	}
-
-    /* Enable CAN interrupts */
-	if(HAL_CAN_ActivateNotification(&HAL_CAN_HANDLER, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY)!=HAL_OK)
-	{
-		/* Notification Error */
-		return CO_ERROR_HAL;
-	}
-
     return CO_ERROR_NO;
 }
 
@@ -280,28 +330,27 @@ CO_ReturnError_t CO_CANrxBufferInit(
         else
         	{
         	/*no hardware filters*/
-        		CAN_FilterTypeDef sFilterConfig;
+        		CAN_FilterTypeDef FilterConfig;
 
-            	sFilterConfig.FilterBank = 0;
-            	sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-            	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-            	sFilterConfig.FilterIdHigh = 0x0;
-            	sFilterConfig.FilterIdLow = 0x0;
-            	sFilterConfig.FilterMaskIdHigh = 0x0;
-            	sFilterConfig.FilterMaskIdLow = 0x0;
-            	sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-            	sFilterConfig.FilterActivation = ENABLE;
-            	sFilterConfig.SlaveStartFilterBank = 14;
+        		FilterConfig.FilterBank = 0;
+        		FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+        		FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+        		FilterConfig.FilterIdHigh = 0x0;
+        		FilterConfig.FilterIdLow = 0x0;
+        		FilterConfig.FilterMaskIdHigh = 0x0;
+        		FilterConfig.FilterMaskIdLow = 0x0;
+        		FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+        		FilterConfig.FilterActivation = ENABLE;
+        		FilterConfig.SlaveStartFilterBank = 14;
 
-					if(HAL_CAN_ConfigFilter(&HAL_CAN_HANDLER, &sFilterConfig)!=HAL_OK)
-					{
-						return CO_ERROR_HAL;
-					}
-					else
-					{
-						;//do nothing
-					}
-
+				if(HAL_CAN_ConfigFilter(CANmodule->CANbaseAddress, &FilterConfig)!=HAL_OK)
+				{
+					return CO_ERROR_HAL;
+				}
+				else
+				{
+					;//do nothing
+				}
         	}
         }
     else
@@ -358,24 +407,29 @@ CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
 
     prepareTxHeader(&TxHeader, buffer);
 
-    /* Copy data to static buffer to ensure it will still exist in the moment of transmission. */
-    static uint8_t data[8];
-    int i; for(i=0; i<8; i++) data[i] = buffer->data[i];
-
     CO_LOCK_CAN_SEND();
-    /* if CAN TX buffer is free, copy message to it */
+    /* if CAN TX buffer is free, send message */
 
     uint32_t TxMailboxNum;
 
-    if ((CANmodule->CANtxCount == 0) && (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0 )) {
+    if ((CANmodule->CANtxCount == 0) &&
+    	(HAL_CAN_GetTxMailboxesFreeLevel(CANmodule->CANbaseAddress) > 0 )) {
         CANmodule->bufferInhibitFlag = buffer->syncFlag;
-        /* copy message and txRequest */
-        if( HAL_CAN_AddTxMessage(&HAL_CAN_HANDLER, &TxHeader, &data[0], &TxMailboxNum) != HAL_OK)
+
+        if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress,
+        						 &TxHeader,
+								 &buffer->data[0],
+								 &TxMailboxNum)
+        						 != HAL_OK)
         {
         	err = CO_ERROR_HAL;
         }
+        else
+        {
+        	;/*do nothing*/
+        }
     }
-    /* if no buffer is free, message will be sent by interrupt */
+    /* if no buffer is free, message will be sent in the task */
     else
     {
         buffer->bufferFull = true;
@@ -438,7 +492,8 @@ void CO_CANverifyErrors(CO_CANmodule_t *CANmodule){
     CO_EM_t* em = (CO_EM_t*)CANmodule->em;
     uint32_t HalCanErrorCode = CANmodule->CANbaseAddress->ErrorCode;
 
-    if(CANmodule->errOld != HalCanErrorCode){
+    if(CANmodule->errOld != HalCanErrorCode)
+    {
         CANmodule->errOld = HalCanErrorCode;
         if(HalCanErrorCode & HAL_CAN_ERROR_BOF)
         {                               /* bus off */
@@ -503,14 +558,14 @@ void CO_CANverifyErrors(CO_CANmodule_t *CANmodule){
 
 /*Interrupt handlers*/
 /******************************************************************************/
-void CO_CANinterrupt_Rx(CO_CANmodule_t *CANmodule)
+void CO_CANinterrupt_Rx(const CO_CANmodule_t *CANmodule)
 {
     /* receive interrupt */
 
 	static CO_CANrxMsg_t CANmessage;
 	bool_t msgMatched = false;
 	CO_CANrx_t *MsgBuff = CANmodule->rxArray; /* receive message buffer from CO_CANmodule_t object. */
-	HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &CANmessage.RxHeader, &CANmessage.data[0]);
+	HAL_CAN_GetRxMessage(CANmodule->CANbaseAddress, CAN_RX_FIFO0, &CANmessage.RxHeader, &CANmessage.data[0]);
 
 	/*dirty hack, consider change to a pointer here*/
 	CANmessage.DLC = (uint8_t)CANmessage.RxHeader.DLC;
@@ -568,55 +623,69 @@ void CO_CANinterrupt_Rx(CO_CANmodule_t *CANmodule)
         /*CubeMx HAL is responsible for clearing interrupt flags and all the dirty work. */
 }
 
-void CO_CANinterrupt_Tx(CO_CANmodule_t *CANmodule)
+
+void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 {
-    /* transmit interrupt */
+	if (HAL_CAN_GetTxMailboxesFreeLevel((CAN_HandleTypeDef*)CANmodule->CANbaseAddress) > 0)
+	{
 
-    /* First CAN message (bootup) was sent successfully */
-    CANmodule->firstCANtxMessage = false;
-    /* Clear flag from previous message */
-    CANmodule->bufferInhibitFlag = false;
-    /* Are there any new messages waiting to be send */
-    if(CANmodule->CANtxCount > 0U)
-    {
-        uint16_t i;             /* index of transmitting message */
 
-        /* first buffer */
-        CO_CANtx_t *buffer = &CANmodule->txArray[0];
-        /* search through whole array of pointers to transmit message buffers. */
-        for(i = CANmodule->txSize; i > 0U; i--)
-        {
-        	/* if message buffer is full, send it. */
-        	if(buffer->bufferFull)
-        	{
-        		buffer->bufferFull = false;
-        		CANmodule->CANtxCount--;
+		/* First CAN message (bootup) was sent successfully */
+		CANmodule->firstCANtxMessage = false;
+		/* Clear flag from previous message */
+		CANmodule->bufferInhibitFlag = false;
+		/* Are there any new messages waiting to be send */
+		if(CANmodule->CANtxCount > 0U)
+		{
+			uint16_t i;             /* index of transmitting message */
+			CO_LOCK_CAN_SEND();
 
-        		/* Copy message to CAN buffer */
-        		CANmodule->bufferInhibitFlag = buffer->syncFlag;
-        		CAN_TxHeaderTypeDef TxHeader;
-			    prepareTxHeader(&TxHeader, buffer);
+			/* first buffer */
+			CO_CANtx_t *buffer = &CANmodule->txArray[0];
+			/* search through whole array of pointers to transmit message buffers. */
+			for(i = CANmodule->txSize; i > 0U; i--)
+			{
+				/* if message buffer is full, send it. */
+				if(buffer->bufferFull)
+				{
 
-        		uint32_t TxMailboxNum;
+					/* Copy message to CAN buffer */
+					CANmodule->bufferInhibitFlag = buffer->syncFlag;
+					CAN_TxHeaderTypeDef TxHeader;
 
-        		HAL_CAN_AddTxMessage(&HAL_CAN_HANDLER, &TxHeader, buffer->data, &TxMailboxNum);
-        		break;                      /* exit for loop */
-        	}
-        	else
-        	{
-        		/*do nothing*/;
-        	}
-            buffer++;
-         }/* end of for loop */
+					prepareTxHeader(&TxHeader, buffer);
 
-         /* Clear counter if no more messages */
-         if(i == 0U)
-         {
-             CANmodule->CANtxCount = 0U;
-         }
-         else
-         {
-        	 /*do nothing*/;
-         }
+					uint32_t TxMailboxNum;
+					CO_LOCK_CAN_SEND();
+					if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress, &TxHeader, &buffer->data[0], &TxMailboxNum) != HAL_OK)
+					{
+						;//do nothing
+					}
+					else
+					{
+						buffer->bufferFull = false;
+						CANmodule->CANtxCount--;
+					}
+				    CO_UNLOCK_CAN_SEND();
+					break;                      /* exit for loop */
+				}
+				else
+				{
+					/*do nothing*/;
+				}
+				buffer++;
+			 }/* end of for loop */
+
+		    /* Clear counter if no more messages */
+			 if(i == 0U)
+			 {
+				 CANmodule->CANtxCount = 0U;
+			 }
+			 else
+			 {
+				 /*do nothing*/;
+			 }
+		}
 	}
 }
+

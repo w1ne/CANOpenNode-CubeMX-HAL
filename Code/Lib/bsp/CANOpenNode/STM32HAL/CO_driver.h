@@ -200,8 +200,6 @@ extern "C" {
     typedef unsigned char           domain_t;   /**< domain_t */
 /** @} */
 
-#define  HAL_CAN_HANDLER hcan1
-
 /**
  * Return values of some CANopen functions. If function was executed
  * successfully it returns 0 otherwise it returns <0.
@@ -267,7 +265,6 @@ typedef struct{
  * CAN module object. It may be different in different microcontrollers.
  */
 typedef struct{
-//	CAN_HandleTypeDef   *CanHandle;		 /*CubeMX CAN handle */
 	CAN_HandleTypeDef   *CANbaseAddress; /**< From CO_CANmodule_init() */
     CO_CANrx_t          *rxArray;        /**< From CO_CANmodule_init() */
     uint16_t             rxSize;         /**< From CO_CANmodule_init() */
@@ -315,7 +312,7 @@ void CO_CANsetConfigurationMode(int32_t CANbaseAddress);
  *
  * @param CANmodule This object.
  */
-void CO_CANsetNormalMode(CO_CANmodule_t *CANmodule);
+CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule);
 
 
 /**
@@ -464,23 +461,25 @@ void CO_CANverifyErrors(CO_CANmodule_t *CANmodule);
 /**
  * Receives CAN messages.
  *
- * Function must be called directly from high priority CAN interrupt.
+ * \detail Function must be called directly from high priority CAN interrupt.
  * e.g. CAN1_TX0_IRQHandler for CubeMx HAL libs.
  *
  * @param CANmodule This object.
  */
-void CO_CANinterrupt_Rx(CO_CANmodule_t *CANmodule);
+void CO_CANinterrupt_Rx(const CO_CANmodule_t *CANmodule);
 
 /**
  * Transmits CAN messages.
  *
- * Function must be called directly from high priority CAN interrupt.
+ * \details Originally function must be called directly from high priority CAN interrupt.
  * e.g. CAN1_RX0_IRQHandler for CubeMx HAL libs.
+ * But in the case of CubeMX HAL, transmission is done by polling.
+ * So for correct operation
  *
  * @param CANmodule This object.
  */
 
-void CO_CANinterrupt_Tx(CO_CANmodule_t *CANmodule);
+void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule);
 
 #ifdef __cplusplus
 }

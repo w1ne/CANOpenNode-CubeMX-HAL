@@ -1,0 +1,3 @@
+[submodule "libs/CANopenNode"]
+	path = libs/CANopenNode
+	url = https://github.com/CANopenNode/CANopenNode.git
