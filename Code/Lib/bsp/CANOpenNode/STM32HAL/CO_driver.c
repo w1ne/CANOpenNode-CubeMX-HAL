@@ -80,8 +80,9 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
 void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer)
 {
     /* Map buffer data to the HAL CAN tx header data*/
+    TxHeader->ExtId = 0u;
     TxHeader->DLC = buffer->DLC;
-    TxHeader->StdId = buffer->ident >> 2;
+    TxHeader->StdId = ( buffer->ident >> 2 );
     TxHeader->RTR = ( buffer->ident & 0x2 );
 }
 
