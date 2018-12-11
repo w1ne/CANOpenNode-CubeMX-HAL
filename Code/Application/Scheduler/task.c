@@ -1,13 +1,4 @@
 /*!*****************************************************************************
- * \copyright (c) 2018
- * Company ifm ecolink ifm ecolink Sp. z o.o.\n\n
- * All rights reserved. Confidential and Proprietary. Protected by
- * international copyright laws.\n
- * Knowledge of the source code may not be used to write a similar product.\n
- * This file may not be redistributed in any way.
- ******************************************************************************/
-
-/*!*****************************************************************************
  * \file        task.c
  * \author      Andrii Shylenko
  *
