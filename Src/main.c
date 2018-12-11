@@ -115,13 +115,14 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	static uint32_t Previous_GetTick = 0U;
-	if(HAL_GetTick() > Previous_GetTick)
+	static uint32_t PreviousTicks = 0U;
+	uint32_t CurrentTicks = HAL_GetTick();
+	if((CurrentTicks - PreviousTicks) >= 1u)
 	 {
-			Previous_GetTick = HAL_GetTick();
-			task_oneMs();
+			PreviousTicks = HAL_GetTick();
+			task_1ms();
+			task_time_slice();
 	 }
-
   }
   /* USER CODE END 3 */
 
