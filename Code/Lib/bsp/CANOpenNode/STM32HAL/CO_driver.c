@@ -58,6 +58,8 @@
  *----------------------------------------------------------------------------*/
 /*\brief pointer to CO_CanModule used in CubeMX CAN Rx interrupt routine*/
 static CO_CANmodule_t* RxFifo_Callback_CanModule_p = NULL;
+/*\brief TxHeader object used for transmission */
+static CAN_TxHeaderTypeDef TxHeader;
 /*-----------------------------------------------------------------------------
  * LOCAL FUNCTION PROTOTYPES
  *----------------------------------------------------------------------------*/
@@ -68,7 +70,7 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
  *----------------------------------------------------------------------------*/
 
 /*!*****************************************************************************
- * \author
+ * \author  Andrii Shylenko
  * \date 	10.11.2018
  *
  * \brief prepares CAN Tx header based on the ID, RTR and data count.
@@ -80,7 +82,8 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
 void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer)
 {
     /* Map buffer data to the HAL CAN tx header data*/
-    TxHeader->ExtId = 0u;
+	TxHeader->ExtId = 0u;
+	TxHeader->IDE = 0;
     TxHeader->DLC = buffer->DLC;
     TxHeader->StdId = ( buffer->ident >> 2 );
     TxHeader->RTR = ( buffer->ident & 0x2 );
@@ -205,8 +208,9 @@ CO_ReturnError_t CO_CANmodule_init(
 
     /* Configure CAN module registers */
     /* Configuration is handled by CubeMX HAL*/
-	HAL_CAN_Stop(CANmodule->CANbaseAddress);
-    //HAL_CAN_MspInit(CANmodule->CANbaseAddress); /* NVIC and GPIO */
+    CO_CANmodule_disable(CANmodule);
+    HAL_CAN_MspDeInit(CANmodule->CANbaseAddress);
+    HAL_CAN_MspInit(CANmodule->CANbaseAddress); /* NVIC and GPIO */
 
     CANmodule->CANbaseAddress->Instance = CAN1;
     CANmodule->CANbaseAddress->Init.Mode = CAN_MODE_NORMAL;
@@ -284,6 +288,10 @@ CO_ReturnError_t CO_CANmodule_init(
 void CO_CANmodule_disable(CO_CANmodule_t *CANmodule){
     /* turn off the module */
 	/* handled by CubeMX HAL*/
+	HAL_CAN_DeactivateNotification(CANmodule->CANbaseAddress ,
+								   CAN_IT_RX_FIFO0_MSG_PENDING |
+								   CAN_IT_RX_FIFO1_MSG_PENDING |
+								   CAN_IT_TX_MAILBOX_EMPTY);
 	HAL_CAN_Stop(CANmodule->CANbaseAddress);
 }
 
@@ -395,7 +403,6 @@ CO_CANtx_t *CO_CANtxBufferInit(
 CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
 {
 	CO_ReturnError_t err = CO_ERROR_NO;
-    static CAN_TxHeaderTypeDef TxHeader;
 
     /* Verify overflow */
     if(buffer->bufferFull){
@@ -406,12 +413,11 @@ CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
         err = CO_ERROR_TX_OVERFLOW;
     }
 
-    prepareTxHeader(&TxHeader, buffer);
-
-    CO_LOCK_CAN_SEND();
-    /* if CAN TX buffer is free, send message */
-
     uint32_t TxMailboxNum;
+    /* if CAN TX buffer is free, send message */
+    CO_LOCK_CAN_SEND();
+
+    prepareTxHeader(&TxHeader, buffer);
 
     if ((CANmodule->CANtxCount == 0) &&
     	(HAL_CAN_GetTxMailboxesFreeLevel(CANmodule->CANbaseAddress) > 0 )) {
@@ -652,13 +658,14 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 
 					/* Copy message to CAN buffer */
 					CANmodule->bufferInhibitFlag = buffer->syncFlag;
-					CAN_TxHeaderTypeDef TxHeader;
-
-					prepareTxHeader(&TxHeader, buffer);
 
 					uint32_t TxMailboxNum;
 					CO_LOCK_CAN_SEND();
-					if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress, &TxHeader, &buffer->data[0], &TxMailboxNum) != HAL_OK)
+					prepareTxHeader(&TxHeader, buffer);
+					if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress,
+											 &TxHeader,
+											 &buffer->data[0],
+											 &TxMailboxNum) != HAL_OK)
 					{
 						;//do nothing
 					}
@@ -667,6 +674,7 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 						buffer->bufferFull = false;
 						CANmodule->CANtxCount--;
 					}
+
 				    CO_UNLOCK_CAN_SEND();
 					break;                      /* exit for loop */
 				}
