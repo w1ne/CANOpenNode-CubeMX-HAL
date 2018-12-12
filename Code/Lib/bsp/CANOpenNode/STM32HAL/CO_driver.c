@@ -82,8 +82,8 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
 void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer)
 {
     /* Map buffer data to the HAL CAN tx header data*/
-	TxHeader->ExtId = 0u;
-	TxHeader->IDE = 0;
+    TxHeader->ExtId = 0u;
+    TxHeader->IDE = 0;
     TxHeader->DLC = buffer->DLC;
     TxHeader->StdId = ( buffer->ident >> 2 );
     TxHeader->RTR = ( buffer->ident & 0x2 );
@@ -160,7 +160,7 @@ CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule){
 /******************************************************************************/
 CO_ReturnError_t CO_CANmodule_init(
         CO_CANmodule_t         *CANmodule,
-		CAN_HandleTypeDef      *HALCanObject,
+	CAN_HandleTypeDef      *HALCanObject,
         CO_CANrx_t              rxArray[],
         uint16_t                rxSize,
         CO_CANtx_t              txArray[],
@@ -425,8 +425,8 @@ CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
 
         if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress,
         						 &TxHeader,
-								 &buffer->data[0],
-								 &TxMailboxNum)
+							 &buffer->data[0],
+							 &TxMailboxNum)
         						 != HAL_OK)
         {
         	err = CO_ERROR_HAL;
