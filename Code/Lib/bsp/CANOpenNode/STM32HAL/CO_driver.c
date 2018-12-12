@@ -82,8 +82,8 @@ static void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer);
 void prepareTxHeader(CAN_TxHeaderTypeDef *TxHeader, CO_CANtx_t *buffer)
 {
     /* Map buffer data to the HAL CAN tx header data*/
-    TxHeader->ExtId = 0u;
-    TxHeader->IDE = 0;
+	TxHeader->ExtId = 0u;
+	TxHeader->IDE = 0;
     TxHeader->DLC = buffer->DLC;
     TxHeader->StdId = ( buffer->ident >> 2 );
     TxHeader->RTR = ( buffer->ident & 0x2 );
@@ -143,6 +143,14 @@ CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule){
 	}
 
     /* Enable CAN interrupts */
+
+//    HAL_NVIC_SetPriority(CAN1_TX_IRQn, 1, 0);
+//    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
+//    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 1, 0);
+//    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+//    HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 1, 0);
+//    HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+
 	if(HAL_CAN_ActivateNotification( CANmodule->CANbaseAddress,
 									 CAN_IT_RX_FIFO0_MSG_PENDING |
 									 CAN_IT_RX_FIFO1_MSG_PENDING |
@@ -160,7 +168,7 @@ CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule){
 /******************************************************************************/
 CO_ReturnError_t CO_CANmodule_init(
         CO_CANmodule_t         *CANmodule,
-	CAN_HandleTypeDef      *HALCanObject,
+		CAN_HandleTypeDef      *HALCanObject,
         CO_CANrx_t              rxArray[],
         uint16_t                rxSize,
         CO_CANtx_t              txArray[],
@@ -425,8 +433,8 @@ CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
 
         if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress,
         						 &TxHeader,
-							 &buffer->data[0],
-							 &TxMailboxNum)
+								 &buffer->data[0],
+								 &TxMailboxNum)
         						 != HAL_OK)
         {
         	err = CO_ERROR_HAL;
@@ -635,9 +643,7 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 {
 	if (HAL_CAN_GetTxMailboxesFreeLevel((CAN_HandleTypeDef*)CANmodule->CANbaseAddress) > 0)
 	{
-
-
-		/* First CAN message (bootup) was sent successfully */
+        /* First CAN message (bootup) was sent successfully */
 		CANmodule->firstCANtxMessage = false;
 		/* Clear flag from previous message */
 		CANmodule->bufferInhibitFlag = false;
@@ -645,7 +651,6 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 		if(CANmodule->CANtxCount > 0U)
 		{
 			uint16_t i;             /* index of transmitting message */
-			CO_LOCK_CAN_SEND();
 
 			/* first buffer */
 			CO_CANtx_t *buffer = &CANmodule->txArray[0];
@@ -660,7 +665,7 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 					CANmodule->bufferInhibitFlag = buffer->syncFlag;
 
 					uint32_t TxMailboxNum;
-					CO_LOCK_CAN_SEND();
+
 					prepareTxHeader(&TxHeader, buffer);
 					if( HAL_CAN_AddTxMessage(CANmodule->CANbaseAddress,
 											 &TxHeader,
@@ -675,7 +680,6 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 						CANmodule->CANtxCount--;
 					}
 
-				    CO_UNLOCK_CAN_SEND();
 					break;                      /* exit for loop */
 				}
 				else
@@ -697,4 +701,3 @@ void CO_CANpolling_Tx(CO_CANmodule_t *CANmodule)
 		}
 	}
 }
-
