@@ -175,18 +175,18 @@ extern "C" {
  * @{
  */
 
-	#define CO_LOCK_CAN_SEND()   { 							                  \
-									 uint32_t PrevPrimask= __get_PRIMASK();   \
-									 __disable_irq();
+#define CO_LOCK_CAN_SEND()   { 							                  \
+		uint32_t PrevPrimask= __get_PRIMASK();   \
+		__disable_irq();
 
-	#define CO_UNLOCK_CAN_SEND()     __set_PRIMASK(PrevPrimask);              \
-								 }
+#define CO_UNLOCK_CAN_SEND()     __set_PRIMASK(PrevPrimask);              \
+		}
 
-    #define CO_LOCK_EMCY()          CO_LOCK_CAN_SEND()   /**< Lock critical section in CO_errorReport() or CO_errorReset() */
-    #define CO_UNLOCK_EMCY()        CO_UNLOCK_CAN_SEND() /**< Unlock critical section in CO_errorReport() or CO_errorReset() */
+#define CO_LOCK_EMCY()          CO_LOCK_CAN_SEND()   /**< Lock critical section in CO_errorReport() or CO_errorReset() */
+#define CO_UNLOCK_EMCY()        CO_UNLOCK_CAN_SEND() /**< Unlock critical section in CO_errorReport() or CO_errorReset() */
 
-    #define CO_LOCK_OD()            CO_LOCK_CAN_SEND()   /**< Lock critical section when accessing Object Dictionary */
-    #define CO_UNLOCK_OD()          CO_UNLOCK_CAN_SEND() /**< Unlock critical section when accessing Object Dictionary */
+#define CO_LOCK_OD()            CO_LOCK_CAN_SEND()   /**< Lock critical section when accessing Object Dictionary */
+#define CO_UNLOCK_OD()          CO_UNLOCK_CAN_SEND() /**< Unlock critical section when accessing Object Dictionary */
 /** @} */
 
 
@@ -196,13 +196,13 @@ extern "C" {
  *
  * According to Misra C
  */
-    /* int8_t to uint64_t are defined in stdint.h */
-    typedef unsigned char           bool_t;     /**< bool_t */
-    typedef float                   float32_t;  /**< float32_t */
-    typedef long double             float64_t;  /**< float64_t */
-    typedef char                    char_t;     /**< char_t */
-    typedef unsigned char           oChar_t;    /**< oChar_t */
-    typedef unsigned char           domain_t;   /**< domain_t */
+/* int8_t to uint64_t are defined in stdint.h */
+typedef unsigned char           bool_t;     /**< bool_t */
+typedef float                   float32_t;  /**< float32_t */
+typedef long double             float64_t;  /**< float64_t */
+typedef char                    char_t;     /**< char_t */
+typedef unsigned char           oChar_t;    /**< oChar_t */
+typedef unsigned char           domain_t;   /**< domain_t */
 /** @} */
 
 /**
@@ -210,21 +210,21 @@ extern "C" {
  * successfully it returns 0 otherwise it returns <0.
  */
 typedef enum{
-    CO_ERROR_NO                 =  0,   /**< Operation completed successfully */
-    CO_ERROR_ILLEGAL_ARGUMENT   = -1,   /**< Error in function arguments */
-    CO_ERROR_OUT_OF_MEMORY      = -2,   /**< Memory allocation failed */
-    CO_ERROR_TIMEOUT            = -3,   /**< Function timeout */
-    CO_ERROR_ILLEGAL_BAUDRATE   = -4,   /**< Illegal baudrate passed to function CO_CANmodule_init() */
-    CO_ERROR_RX_OVERFLOW        = -5,   /**< Previous message was not processed yet */
-    CO_ERROR_RX_PDO_OVERFLOW    = -6,   /**< previous PDO was not processed yet */
-    CO_ERROR_RX_MSG_LENGTH      = -7,   /**< Wrong receive message length */
-    CO_ERROR_RX_PDO_LENGTH      = -8,   /**< Wrong receive PDO length */
-    CO_ERROR_TX_OVERFLOW        = -9,   /**< Previous message is still waiting, buffer full */
-    CO_ERROR_TX_PDO_WINDOW      = -10,  /**< Synchronous TPDO is outside window */
-    CO_ERROR_TX_UNCONFIGURED    = -11,  /**< Transmit buffer was not configured properly */
-    CO_ERROR_PARAMETERS         = -12,  /**< Error in function parameters */
-    CO_ERROR_DATA_CORRUPT       = -13,  /**< Stored data are corrupt */
-    CO_ERROR_CRC                = -14,   /**< CRC does not match */
+	CO_ERROR_NO                 =  0,   /**< Operation completed successfully */
+	CO_ERROR_ILLEGAL_ARGUMENT   = -1,   /**< Error in function arguments */
+	CO_ERROR_OUT_OF_MEMORY      = -2,   /**< Memory allocation failed */
+	CO_ERROR_TIMEOUT            = -3,   /**< Function timeout */
+	CO_ERROR_ILLEGAL_BAUDRATE   = -4,   /**< Illegal baudrate passed to function CO_CANmodule_init() */
+	CO_ERROR_RX_OVERFLOW        = -5,   /**< Previous message was not processed yet */
+	CO_ERROR_RX_PDO_OVERFLOW    = -6,   /**< previous PDO was not processed yet */
+	CO_ERROR_RX_MSG_LENGTH      = -7,   /**< Wrong receive message length */
+	CO_ERROR_RX_PDO_LENGTH      = -8,   /**< Wrong receive PDO length */
+	CO_ERROR_TX_OVERFLOW        = -9,   /**< Previous message is still waiting, buffer full */
+	CO_ERROR_TX_PDO_WINDOW      = -10,  /**< Synchronous TPDO is outside window */
+	CO_ERROR_TX_UNCONFIGURED    = -11,  /**< Transmit buffer was not configured properly */
+	CO_ERROR_PARAMETERS         = -12,  /**< Error in function parameters */
+	CO_ERROR_DATA_CORRUPT       = -13,  /**< Stored data are corrupt */
+	CO_ERROR_CRC                = -14,   /**< CRC does not match */
 	CO_ERROR_HAL		     	= -15	/**< HAL error */
 }CO_ReturnError_t;
 
@@ -234,11 +234,11 @@ typedef enum{
  * different microcontrollers. It usually contains other variables.
  */
 typedef struct{
-    /** CAN identifier. It must be read through CO_CANrxMsg_readIdent() function. */
+	/** CAN identifier. It must be read through CO_CANrxMsg_readIdent() function. */
 	CAN_RxHeaderTypeDef RxHeader;
-    uint32_t            ident;          /* Standard Identifier */
-    uint8_t             DLC;            /* Data length code (bits 0...3) */
-    uint8_t             data[8];        /**< 8 data bytes */
+	uint32_t            ident;          /* Standard Identifier */
+	uint8_t             DLC;            /* Data length code (bits 0...3) */
+	uint8_t             data[8];        /**< 8 data bytes */
 }CO_CANrxMsg_t;
 
 
@@ -246,10 +246,10 @@ typedef struct{
  * Received message object
  */
 typedef struct{
-    uint16_t            ident;          /**< Standard CAN Identifier (bits 0..10) + RTR (bit 11) */
-    uint16_t            mask;           /**< Standard Identifier mask with same alignment as ident */
-    void               *object;         /**< From CO_CANrxBufferInit() */
-    void              (*pFunct)(void *object, const CO_CANrxMsg_t *message);  /**< From CO_CANrxBufferInit() */
+	uint16_t            ident;          /**< Standard CAN Identifier (bits 0..10) + RTR (bit 11) */
+	uint16_t            mask;           /**< Standard Identifier mask with same alignment as ident */
+	void               *object;         /**< From CO_CANrxBufferInit() */
+	void              (*pFunct)(void *object, const CO_CANrxMsg_t *message);  /**< From CO_CANrxBufferInit() */
 }CO_CANrx_t;
 
 
@@ -257,12 +257,12 @@ typedef struct{
  * Transmit message object.
  */
 typedef struct{
-    uint32_t            ident;          /**< CAN identifier as aligned in CAN module */
-    uint8_t             DLC ;           /**< Length of CAN message. (DLC may also be part of ident) */
-    uint8_t             data[8];        /**< 8 data bytes */
-    volatile bool_t     bufferFull;     /**< True if previous message is still in buffer */
-    /** Synchronous PDO messages has this flag set. It prevents them to be sent outside the synchronous window */
-    volatile bool_t     syncFlag;
+	uint32_t            ident;          /**< CAN identifier as aligned in CAN module */
+	uint8_t             DLC ;           /**< Length of CAN message. (DLC may also be part of ident) */
+	uint8_t             data[8];        /**< 8 data bytes */
+	volatile bool_t     bufferFull;     /**< True if previous message is still in buffer */
+	/** Synchronous PDO messages has this flag set. It prevents them to be sent outside the synchronous window */
+	volatile bool_t     syncFlag;
 }CO_CANtx_t;
 
 
@@ -271,27 +271,27 @@ typedef struct{
  */
 typedef struct{
 	CAN_HandleTypeDef   *CANbaseAddress; /**< From CO_CANmodule_init() */
-    CO_CANrx_t          *rxArray;        /**< From CO_CANmodule_init() */
-    uint16_t             rxSize;         /**< From CO_CANmodule_init() */
-    CO_CANtx_t          *txArray;        /**< From CO_CANmodule_init() */
-    uint16_t             txSize;         /**< From CO_CANmodule_init() */
-    volatile bool_t      CANnormal;      /**< CAN module is in normal mode */
-    /** Value different than zero indicates, that CAN module hardware filters
-      * are used for CAN reception. If there is not enough hardware filters,
-      * they won't be used. In this case will be *all* received CAN messages
-      * processed by software. */
-    volatile bool_t      useCANrxFilters;
-    /** If flag is true, then message in transmitt buffer is synchronous PDO
-      * message, which will be aborted, if CO_clearPendingSyncPDOs() function
-      * will be called by application. This may be necessary if Synchronous
-      * window time was expired. */
-    volatile bool_t      bufferInhibitFlag;
-    /** Equal to 1, when the first transmitted message (bootup message) is in CAN TX buffers */
-    volatile bool_t      firstCANtxMessage;
-    /** Number of messages in transmit buffer, which are waiting to be copied to the CAN module */
-    volatile uint16_t    CANtxCount;
-    uint32_t             errOld;         /**< Previous state of CAN errors */
-    void                *em;             /**< Emergency object */
+	CO_CANrx_t          *rxArray;        /**< From CO_CANmodule_init() */
+	uint16_t             rxSize;         /**< From CO_CANmodule_init() */
+	CO_CANtx_t          *txArray;        /**< From CO_CANmodule_init() */
+	uint16_t             txSize;         /**< From CO_CANmodule_init() */
+	volatile bool_t      CANnormal;      /**< CAN module is in normal mode */
+	/** Value different than zero indicates, that CAN module hardware filters
+	 * are used for CAN reception. If there is not enough hardware filters,
+	 * they won't be used. In this case will be *all* received CAN messages
+	 * processed by software. */
+	volatile bool_t      useCANrxFilters;
+	/** If flag is true, then message in transmitt buffer is synchronous PDO
+	 * message, which will be aborted, if CO_clearPendingSyncPDOs() function
+	 * will be called by application. This may be necessary if Synchronous
+	 * window time was expired. */
+	volatile bool_t      bufferInhibitFlag;
+	/** Equal to 1, when the first transmitted message (bootup message) is in CAN TX buffers */
+	volatile bool_t      firstCANtxMessage;
+	/** Number of messages in transmit buffer, which are waiting to be copied to the CAN module */
+	volatile uint16_t    CANtxCount;
+	uint32_t             errOld;         /**< Previous state of CAN errors */
+	void                *em;             /**< Emergency object */
 }CO_CANmodule_t;
 
 
@@ -338,13 +338,13 @@ CO_ReturnError_t CO_CANsetNormalMode(CO_CANmodule_t *CANmodule);
  * Return #CO_ReturnError_t: CO_ERROR_NO or CO_ERROR_ILLEGAL_ARGUMENT.
  */
 CO_ReturnError_t CO_CANmodule_init(
-        CO_CANmodule_t         *CANmodule,
+		CO_CANmodule_t         *CANmodule,
 		CAN_HandleTypeDef      *HALCanObject,
-        CO_CANrx_t              rxArray[],
-        uint16_t                rxSize,
-        CO_CANtx_t              txArray[],
-        uint16_t                txSize,
-        uint16_t                CANbitRate);
+		CO_CANrx_t              rxArray[],
+		uint16_t                rxSize,
+		CO_CANtx_t              txArray[],
+		uint16_t                txSize,
+		uint16_t                CANbitRate);
 
 
 /**
@@ -388,13 +388,13 @@ void CO_CANmodule_disable(CO_CANmodule_t *CANmodule);
  * CO_ERROR_OUT_OF_MEMORY (not enough masks for configuration).
  */
 CO_ReturnError_t CO_CANrxBufferInit(
-        CO_CANmodule_t         *CANmodule,
-        uint16_t                index,
-        uint16_t                ident,
-        uint16_t                mask,
-        bool_t                  rtr,
-        void                   *object,
-        void                  (*pFunct)(void *object, const CO_CANrxMsg_t *message));
+		CO_CANmodule_t         *CANmodule,
+		uint16_t                index,
+		uint16_t                ident,
+		uint16_t                mask,
+		bool_t                  rtr,
+		void                   *object,
+		void                  (*pFunct)(void *object, const CO_CANrxMsg_t *message));
 
 
 /**
@@ -416,12 +416,12 @@ CO_ReturnError_t CO_CANrxBufferInit(
  * Zero is returned in case of wrong arguments.
  */
 CO_CANtx_t *CO_CANtxBufferInit(
-        CO_CANmodule_t         *CANmodule,
-        uint16_t                index,
-        uint16_t                ident,
-        bool_t                  rtr,
-        uint8_t                 noOfBytes,
-        bool_t                  syncFlag);
+		CO_CANmodule_t         *CANmodule,
+		uint16_t                index,
+		uint16_t                ident,
+		bool_t                  rtr,
+		uint8_t                 noOfBytes,
+		bool_t                  syncFlag);
 
 
 /**
